@@ -1,0 +1,65 @@
+# OS / Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Logs
+*.log
+*.tmp
+
+# Backend (Maven / Spring)
+backend/target/
+backend/.classpath
+backend/.project
+backend/.settings/
+backend/.mvn/wrapper/maven-wrapper.jar
+backend/.env
+
+# Frontend (Angular / Node)
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+frontend/.angular/
+frontend/.env
+
+# Runtime storage
+storage/
+backend/storage/
+
+# Environment / secrets
+.env
+.env.*
+
+# Temporary analysis artifacts
+odt_extract_tmp/
+datashare_figma_extract.txt
+specs_pdf_extract.txt
+
+# Exclure les documents et fichiers non demandés pour le rendu
+ANALYSE_FIGMA_DATASHARE.md
+ARCHITECTURE_MVP.md
+BACKLOG_EXECUTION_10J.md
+CADRAGE_TECHNIQUE_MVP.md
+CHECKLIST_CONFORMITE.md
+CHECKLIST_SOUTENANCE_1PAGE.md
+DataShare.fig
+DataShare.pdf
+P3+EDO+P4+AL+-+Modèle+de+Documentation+technique.odt
+P3+EDO+P4+AL+-+Spécifications+pour+l’application.pdf
+SUIVI_QUOTIDIEN_10J.md
+SUPPORT_SOUTENANCE.md
+MODELE_DONNEES_MCD_MLD.md
+docs/
+test-results/
+
+# Autoriser les fichiers demandés pour le rendu
+!README.md
+!TESTING.md
+!SECURITY.md
+!PERF.md
+!MAINTENANCE.md
+!LIEN_REPO.txt
+!openapi.yaml
+!database/schema.sql
+!backend/scripts/cleanup_orphan_files.sql

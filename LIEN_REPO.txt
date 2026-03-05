@@ -1,0 +1,16 @@
+Lien du repository GitHub pour le rendu du projet :
+
+https://github.com/blackcels/pilotez-le-developpement-d-une-solution-informatique
+
+Ce dépôt contient :
+- Le code source complet avec l’historique de commits
+- Un README détaillé
+- Les scripts de déploiement (BDD, Docker, etc.)
+- Le plan de suivi de qualité et maintenance :
+  - TESTING.md
+  - SECURITY.md
+  - PERF.md
+  - MAINTENANCE.md
+
+Auteur : blackcels
+Date : 5 mars 2026

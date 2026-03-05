@@ -1,0 +1,400 @@
+# Contrat d’interface API DataShare (OpenAPI 3.0)
+# Version : 1.0.0
+# Ce document décrit l’ensemble des endpoints RESTful exposés par le backend DataShare,
+# conformément aux spécifications du MVP. Il sert de référence pour l’intégration front/back
+# et la validation des livrables.
+
+openapi: 3.0.3
+info:
+  title: DataShare API
+  version: 1.0.0
+  description: Contrat API MVP (US01 à US06) pour DataShare.
+
+servers:
+  - url: http://localhost:8080/api
+
+tags:
+  - name: Auth
+  - name: Files
+  - name: Download
+
+paths:
+  /auth/signup:
+    post:
+      tags: [Auth]
+      summary: Créer un compte utilisateur
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignupRequest'
+      responses:
+        '201':
+          description: Compte créé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Email déjà utilisé
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Se connecter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Connexion réussie
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Récupérer l'utilisateur courant
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profil utilisateur
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /files/upload:
+    post:
+      tags: [Files]
+      summary: Upload d'un fichier (auth requis)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                expiresInDays:
+                  type: integer
+                  minimum: 1
+                  maximum: 7
+                  description: Valeur par défaut côté serveur à 7 si absent.
+                password:
+                  type: string
+                  minLength: 6
+                  description: Mot de passe optionnel pour protéger le téléchargement.
+      responses:
+        '201':
+          description: Upload réussi
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /files:
+    get:
+      tags: [Files]
+      summary: Historique des fichiers de l'utilisateur connecté
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          required: false
+          schema:
+            type: string
+            enum: [all, active, expired]
+            default: all
+      responses:
+        '200':
+          description: Liste des fichiers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FileItem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /files/{id}:
+    delete:
+      tags: [Files]
+      summary: Supprimer un fichier du propriétaire
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Fichier supprimé
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Accès refusé (ownership)
+        '404':
+          description: Fichier introuvable
+
+  /download/{token}/metadata:
+    get:
+      tags: [Download]
+      summary: Consulter les métadonnées avant téléchargement
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Métadonnées du fichier
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DownloadMetadata'
+        '404':
+          description: Lien invalide
+        '410':
+          description: Lien expiré
+
+  /download/{token}/verify-password:
+    post:
+      tags: [Download]
+      summary: Vérifier le mot de passe d'un fichier protégé
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DownloadPasswordRequest'
+      responses:
+        '200':
+          description: Mot de passe valide
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                    example: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Mot de passe invalide
+        '404':
+          description: Lien invalide
+        '410':
+          description: Lien expiré
+
+  /download/{token}/file:
+    get:
+      tags: [Download]
+      summary: Télécharger le fichier
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: password
+          required: false
+          schema:
+            type: string
+            description: Requis si le fichier est protégé.
+      responses:
+        '200':
+          description: Flux binaire du fichier
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Mot de passe requis/invalide
+        '404':
+          description: Lien invalide
+        '410':
+          description: Lien expiré
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    BadRequest:
+      description: Requête invalide
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Non authentifié
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    SignupRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          $ref: '#/components/schemas/UserProfile'
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        createdAt:
+          type: string
+          format: date-time
+
+    UploadResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        originalName:
+          type: string
+        sizeBytes:
+          type: integer
+          format: int64
+        expiresAt:
+          type: string
+          format: date-time
+        downloadUrl:
+          type: string
+          format: uri
+        passwordProtected:
+          type: boolean
+
+    FileItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        originalName:
+          type: string
+        sizeBytes:
+          type: integer
+          format: int64
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [active, expired]
+        downloadUrl:
+          type: string
+          format: uri
+
+    DownloadMetadata:
+      type: object
+      properties:
+        originalName:
+          type: string
+        sizeBytes:
+          type: integer
+          format: int64
+        expiresAt:
+          type: string
+          format: date-time
+        passwordRequired:
+          type: boolean
+
+    DownloadPasswordRequest:
+      type: object
+      required: [password]
+      properties:
+        password:
+          type: string
+          minLength: 6
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+          example: VALIDATION_ERROR
+        message:
+          type: string
+          example: Requête invalide
+        details:
+          type: array
+          items:
+            type: string
